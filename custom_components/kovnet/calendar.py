@@ -12,7 +12,7 @@ from .entity import KovnetEntity, care_days, local_dt
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data
-    async_add_entities(KovnetCalendar(coordinator, cid) for cid in coordinator.data.rosters)
+    async_add_entities(KovnetCalendar(coordinator, cid) for cid in coordinator.data.schedules)
 
 
 def _to_event(d: CareDay) -> CalendarEvent | None:
@@ -43,14 +43,14 @@ class KovnetCalendar(KovnetEntity, CalendarEntity):
     def event(self) -> CalendarEvent | None:
         # Only real care blocks, so the entity state is 'on' exactly during opvang.
         now = dt_util.now()
-        for d in care_days(self.roster):
+        for d in care_days(self.schedule):
             if d.has_care and local_dt(d.day, d.end) > now:
                 return _to_event(d)
         return None
 
     async def async_get_events(self, hass, start_date: datetime, end_date: datetime):
         events = []
-        for d in care_days(self.roster):
+        for d in care_days(self.schedule):
             ev = _to_event(d)
             if ev is None:
                 continue

@@ -9,7 +9,7 @@ from .entity import KovnetTimeEntity
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data
-    async_add_entities(KovnetCareToday(coordinator, cid) for cid in coordinator.data.rosters)
+    async_add_entities(KovnetCareToday(coordinator, cid) for cid in coordinator.data.schedules)
 
 
 class KovnetCareToday(KovnetTimeEntity, BinarySensorEntity):
@@ -21,8 +21,8 @@ class KovnetCareToday(KovnetTimeEntity, BinarySensorEntity):
 
     @property
     def _today(self):
-        roster = self.roster
-        return roster.days.get(dt_util.now().date()) if roster else None
+        schedule = self.schedule
+        return schedule.days.get(dt_util.now().date()) if schedule else None
 
     @property
     def is_on(self) -> bool:

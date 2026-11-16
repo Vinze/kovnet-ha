@@ -20,7 +20,7 @@ from .api import (
     KovnetTwoFactorRequired,
     KovnetUser,
     Profile,
-    Roster,
+    Schedule,
 )
 from .const import (
     CONF_CONTRACT_IDS,
@@ -37,7 +37,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class KovnetData:
     profile: Profile
-    rosters: dict[int, Roster]
+    schedules: dict[int, Schedule]
 
 
 def pick_user(users: list[KovnetUser], user_id: int | None) -> KovnetUser:
@@ -103,10 +103,10 @@ class KovnetCoordinator(DataUpdateCoordinator[KovnetData]):
         else:
             ids = [cid for cid, c in profile.contracts.items() if c.is_current(today)]
 
-        rosters: dict[int, Roster] = {}
+        schedules: dict[int, Schedule] = {}
         for cid in ids:
             days = {}
             for year, month in months:
                 days.update(await self.api.schedule(cid, year, month, profile.group_names))
-            rosters[cid] = Roster(child_name=profile.contracts[cid].child_name, days=days)
-        return KovnetData(profile=profile, rosters=rosters)
+            schedules[cid] = Schedule(child_name=profile.contracts[cid].child_name, days=days)
+        return KovnetData(profile=profile, schedules=schedules)

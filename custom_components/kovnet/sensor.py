@@ -9,7 +9,7 @@ from .entity import KovnetTimeEntity, care_days, local_dt
 
 async def async_setup_entry(hass, entry, async_add_entities):
     coordinator = entry.runtime_data
-    async_add_entities(KovnetNextCare(coordinator, cid) for cid in coordinator.data.rosters)
+    async_add_entities(KovnetNextCare(coordinator, cid) for cid in coordinator.data.schedules)
 
 
 class KovnetNextCare(KovnetTimeEntity, SensorEntity):
@@ -22,7 +22,7 @@ class KovnetNextCare(KovnetTimeEntity, SensorEntity):
 
     def _next(self):
         now = dt_util.now()
-        for d in care_days(self.roster):
+        for d in care_days(self.schedule):
             if d.has_care and local_dt(d.day, d.start) > now:
                 return d
         return None

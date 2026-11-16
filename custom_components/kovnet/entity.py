@@ -9,7 +9,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .api import CareDay, Roster
+from .api import CareDay, Schedule
 from .const import DOMAIN
 from .coordinator import KovnetCoordinator
 
@@ -18,10 +18,10 @@ def local_dt(day: date, t: time) -> datetime:
     return datetime.combine(day, t, tzinfo=dt_util.get_default_time_zone())
 
 
-def care_days(roster: Roster | None) -> list[CareDay]:
-    if roster is None:
+def care_days(schedule: Schedule | None) -> list[CareDay]:
+    if schedule is None:
         return []
-    return [d for _, d in sorted(roster.days.items())]
+    return [d for _, d in sorted(schedule.days.items())]
 
 
 class KovnetEntity(CoordinatorEntity[KovnetCoordinator]):
@@ -33,7 +33,7 @@ class KovnetEntity(CoordinatorEntity[KovnetCoordinator]):
         super().__init__(coordinator)
         self.contract_id = contract_id
         self._attr_unique_id = f"{contract_id}_{key}"
-        child = self.roster.child_name if self.roster else None
+        child = self.schedule.child_name if self.schedule else None
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, str(contract_id))},
             name=f"KOVnet {child or contract_id}",
@@ -43,12 +43,12 @@ class KovnetEntity(CoordinatorEntity[KovnetCoordinator]):
         )
 
     @property
-    def roster(self) -> Roster | None:
-        return self.coordinator.data.rosters.get(self.contract_id)
+    def schedule(self) -> Schedule | None:
+        return self.coordinator.data.schedules.get(self.contract_id)
 
     @property
     def available(self) -> bool:
-        return super().available and self.roster is not None
+        return super().available and self.schedule is not None
 
 
 class KovnetTimeEntity(KovnetEntity):

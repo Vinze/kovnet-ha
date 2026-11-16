@@ -99,8 +99,8 @@ class CareDay:
 
 
 @dataclass
-class Roster:
-    """Roster for one contract (one or more months merged)."""
+class Schedule:
+    """Schedule for one contract (one or more months merged)."""
 
     child_name: str | None
     days: dict[date, CareDay]
