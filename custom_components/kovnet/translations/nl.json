@@ -11,9 +11,10 @@
       },
       "code": {
         "title": "Verificatiecode",
-        "description": "KOVnet heeft een viercijferige code gemaild naar {email}. Vul die hier in. Dit hoeft maar één keer; daarna gebruikt Home Assistant een token dat ongeveer een jaar geldig blijft.",
+        "description": "KOVnet heeft een viercijferige code gemaild naar {email}. Vul die hier in. Dit hoeft maar één keer; daarna gebruikt Home Assistant een token dat ongeveer een jaar geldig blijft. Geen code ontvangen of is hij verlopen? Vink 'Stuur een nieuwe code' aan en verstuur.",
         "data": {
-          "code": "Code"
+          "code": "Code",
+          "resend": "Stuur een nieuwe code"
         }
       },
       "account": {
@@ -40,10 +41,11 @@
     },
     "error": {
       "invalid_auth": "Inloggen mislukt, controleer e-mailadres en wachtwoord.",
-      "invalid_code": "De code is niet geaccepteerd. Controleer de nieuwste KOVnet-mail, of ga terug om een nieuwe code aan te vragen.",
+      "invalid_code": "De code is niet geaccepteerd. Controleer de nieuwste KOVnet-mail, of vink 'Stuur een nieuwe code' aan.",
       "cannot_connect": "Kon KOVnet niet bereiken.",
       "no_contract_selected": "Kies minstens één contract.",
-      "unknown": "Onverwachte fout, zie het logboek."
+      "unknown": "Onverwachte fout, zie het logboek.",
+      "code_resent": "KOVnet heeft een nieuwe code gemaild. Vul die hieronder in."
     },
     "abort": {
       "already_configured": "Dit KOVnet-account is al gekoppeld.",

@@ -3,6 +3,8 @@ from datetime import timedelta
 
 DOMAIN = "kovnet"
 CONF_CODE = "code"
+CONF_RESEND = "resend"
+CONF_TWO_FACTOR = "two_factor"  # token was obtained with an e-mailed code
 CONF_TOKEN = "token"
 CONF_USER_ID = "user_id"
 CONF_CONTRACT_IDS = "contract_ids"

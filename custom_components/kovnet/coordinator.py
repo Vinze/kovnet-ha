@@ -22,7 +22,14 @@ from .api import (
     Profile,
     Roster,
 )
-from .const import CONF_CONTRACT_IDS, CONF_TOKEN, CONF_USER_ID, DOMAIN, UPDATE_INTERVAL
+from .const import (
+    CONF_CONTRACT_IDS,
+    CONF_TOKEN,
+    CONF_TWO_FACTOR,
+    CONF_USER_ID,
+    DOMAIN,
+    UPDATE_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,10 +71,15 @@ class KovnetCoordinator(DataUpdateCoordinator[KovnetData]):
             raise UpdateFailed(str(err)) from err
 
     async def _relogin(self) -> bool:
-        """Token invalid: try a silent login with the stored password (works without 2FA)."""
+        """Token invalid: try a silent login with the stored password (works without 2FA).
+
+        Skipped when the token came from a 2FA login: the attempt would only make
+        KOVnet mail a code that is useless, because the reauth flow logs in (and
+        mails a code) again.
+        """
         entry = self.config_entry
         password = entry.data.get(CONF_PASSWORD)
-        if not password:
+        if not password or entry.data.get(CONF_TWO_FACTOR):
             return False
         _LOGGER.debug("KOVnet token rejected, logging in again")
         users = await self.api.login(entry.data[CONF_EMAIL], password)

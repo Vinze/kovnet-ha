@@ -28,13 +28,26 @@ from .api import (
     KovnetUser,
     Profile,
 )
-from .const import CONF_CODE, CONF_CONTRACT_IDS, CONF_TOKEN, CONF_USER_ID, DOMAIN
+from .const import (
+    CONF_CODE,
+    CONF_CONTRACT_IDS,
+    CONF_RESEND,
+    CONF_TOKEN,
+    CONF_TWO_FACTOR,
+    CONF_USER_ID,
+    DOMAIN,
+)
 from .coordinator import pick_user
 
 _LOGGER = logging.getLogger(__name__)
 
 USER_SCHEMA = vol.Schema({vol.Required(CONF_EMAIL): str, vol.Required(CONF_PASSWORD): str})
-CODE_SCHEMA = vol.Schema({vol.Required(CONF_CODE): str})
+CODE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_CODE, default=""): str,
+        vol.Optional(CONF_RESEND, default=False): bool,
+    }
+)
 PASSWORD_SCHEMA = vol.Schema({vol.Required(CONF_PASSWORD): str})
 
 
@@ -47,6 +60,7 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
         self._users: list[KovnetUser] = []
         self._user: KovnetUser | None = None
         self._profile: Profile | None = None
+        self._two_factor = False
 
     def _api(self, token: str | None = None) -> KovnetApi:
         return KovnetApi(async_get_clientsession(self.hass), token)
@@ -67,6 +81,7 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Unexpected error during KOVnet login")
             return "unknown"
+        self._two_factor = code is not None
         return None
 
     async def _after_login(self) -> ConfigFlowResult:
@@ -80,6 +95,7 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_PASSWORD: self._password,
                     CONF_TOKEN: user.token,
                     CONF_USER_ID: user.user_id,
+                    CONF_TWO_FACTOR: self._two_factor,
                 },
             )
         if len(self._users) > 1:
@@ -111,10 +127,22 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_code(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            error = await self._login(user_input[CONF_CODE].strip())
-            if error is None:
-                return await self._after_login()
-            errors["base"] = "invalid_code" if error in ("need_code", "invalid_auth") else error
+            code = user_input.get(CONF_CODE, "").strip()
+            if user_input.get(CONF_RESEND):
+                # A login without code makes KOVnet mail a fresh code.
+                error = await self._login()
+                if error is None:  # 2FA was switched off in the meantime
+                    return await self._after_login()
+                errors["base"] = "code_resent" if error == "need_code" else error
+            elif not code:
+                errors["base"] = "invalid_code"
+            else:
+                error = await self._login(code)
+                if error is None:
+                    return await self._after_login()
+                errors["base"] = (
+                    "invalid_code" if error in ("need_code", "invalid_auth") else error
+                )
         return self.async_show_form(
             step_id="code",
             data_schema=CODE_SCHEMA,
@@ -153,17 +181,29 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="cannot_connect")
 
         if self._user.user_id is not None:
-            await self.async_set_unique_id(str(self._user.user_id))
-            self._abort_if_unique_id_configured()
+            unique_id = str(self._user.user_id)
+        else:
+            unique_id = f"{self._email.lower()}|{self._user.organization or ''}"
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
 
-        today = dt_util.now().date()
-        contracts = {
-            str(cid): c.label
-            for cid, c in self._profile.contracts.items()
-            if c.is_current(today)
+        # Entries migrated from v1 have a different unique_id (one entry per
+        # contract), so also leave out contracts that another entry already shows.
+        configured = {
+            int(cid)
+            for entry in self._async_current_entries(include_ignore=False)
+            if str(entry.data.get(CONF_EMAIL, "")).lower() == self._email.lower()
+            for cid in entry.data.get(CONF_CONTRACT_IDS) or []
         }
-        if not contracts:
+        today = dt_util.now().date()
+        current = {
+            cid: c for cid, c in self._profile.contracts.items() if c.is_current(today)
+        }
+        if not current:
             return self.async_abort(reason="no_contracts")
+        contracts = {str(cid): c.label for cid, c in current.items() if cid not in configured}
+        if not contracts:
+            return self.async_abort(reason="already_configured")
 
         if user_input is not None:
             chosen = [int(cid) for cid in user_input[CONF_CONTRACT_IDS]]
@@ -177,6 +217,7 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_PASSWORD: self._password,
                         CONF_TOKEN: self._user.token,
                         CONF_USER_ID: self._user.user_id,
+                        CONF_TWO_FACTOR: self._two_factor,
                         CONF_CONTRACT_IDS: chosen,
                     },
                 )

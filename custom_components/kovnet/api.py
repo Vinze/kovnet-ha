@@ -146,7 +146,11 @@ def _date(value: Any) -> date | None:
 
 
 def _hm(entry: dict, prefix: str) -> time:
-    return time(int(entry.get(f"{prefix}_hours") or 0), int(entry.get(f"{prefix}_minutes") or 0))
+    hours = int(entry.get(f"{prefix}_hours") or 0)
+    minutes = int(entry.get(f"{prefix}_minutes") or 0)
+    if hours >= 24:  # "24:00" = end of day; datetime.time cannot represent it
+        return time(23, 59)
+    return time(hours, minutes)
 
 
 def parse_profile(body: dict) -> Profile:

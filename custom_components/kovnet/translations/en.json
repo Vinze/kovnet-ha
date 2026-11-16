@@ -11,9 +11,10 @@
       },
       "code": {
         "title": "Verification code",
-        "description": "KOVnet has emailed a four-digit code to {email}. Enter it here. You only need to do this once; after that Home Assistant uses a token that stays valid for about a year.",
+        "description": "KOVnet has emailed a four-digit code to {email}. Enter it here. You only need to do this once; after that Home Assistant uses a token that stays valid for about a year. No code, or has it expired? Tick 'Send a new code' and submit.",
         "data": {
-          "code": "Code"
+          "code": "Code",
+          "resend": "Send a new code"
         }
       },
       "account": {
@@ -40,10 +41,11 @@
     },
     "error": {
       "invalid_auth": "Login failed, check email and password.",
-      "invalid_code": "The code was not accepted. Check the latest KOVnet email, or go back to request a new code.",
+      "invalid_code": "The code was not accepted. Check the latest KOVnet email, or tick 'Send a new code'.",
       "cannot_connect": "Could not reach KOVnet.",
       "no_contract_selected": "Select at least one contract.",
-      "unknown": "Unexpected error, see the log."
+      "unknown": "Unexpected error, see the log.",
+      "code_resent": "KOVnet has emailed a new code. Enter it below."
     },
     "abort": {
       "already_configured": "This KOVnet account is already configured.",
