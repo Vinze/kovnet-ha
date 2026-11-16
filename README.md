@@ -18,12 +18,17 @@ Het rooster wordt elk uur opgehaald.
 
 ## Installatie
 
-### Via HACS (aanbevolen)
+### Via de Marketplace (aanbevolen)
 
-1. Open HACS en ga naar het menu (⋮) → **Aangepaste repositories**.
-2. Voeg `https://github.com/Vinze/kovnet-ha` toe, met type **Integratie**.
-3. Zoek **KOVnet** en installeer het.
-4. Herstart Home Assistant.
+1. Ga naar **Instellingen → Marketplace**.
+2. Klik rechtsboven op de knop om een repository via een link toe te voegen (*Add from link*).
+3. Vul `Vinze/kovnet-ha` in. Vraagt de Marketplace om een type, kies dan **Integratie**.
+4. Zoek **KOVnet** en installeer het.
+5. Herstart Home Assistant.
+
+Om een repository via een link toe te voegen, moet de Marketplace met GitHub verbonden zijn. Home Assistant vraagt daar zelf om.
+
+> **Ouder dan Home Assistant 2026.11?** Daar heet de Marketplace nog HACS en moet je die eerst los installeren. Voeg de repository toe via HACS → menu (⋮) → **Aangepaste repositories**.
 
 ### Handmatig
 
