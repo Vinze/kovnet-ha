@@ -1,0 +1,12 @@
+{
+  "domain": "kovnet",
+  "name": "KOVnet",
+  "codeowners": ["@vinze"],
+  "config_flow": true,
+  "documentation": "https://github.com/Vinze/kovnet-ha",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Vinze/kovnet-ha/issues",
+  "requirements": [],
+  "version": "0.2.0"
+}

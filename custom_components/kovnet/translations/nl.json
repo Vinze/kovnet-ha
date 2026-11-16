@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "KOVnet ouderportaal",
+        "description": "Log in met je KOVnet-ouderaccount (hetzelfde als in de KOVnet Ouderapp).",
+        "data": {
+          "email": "E-mailadres",
+          "password": "Wachtwoord"
+        }
+      },
+      "code": {
+        "title": "Verificatiecode",
+        "description": "KOVnet heeft een viercijferige code gemaild naar {email}. Vul die hier in. Dit hoeft maar één keer; daarna gebruikt Home Assistant een token dat ongeveer een jaar geldig blijft.",
+        "data": {
+          "code": "Code"
+        }
+      },
+      "account": {
+        "title": "Kies organisatie",
+        "description": "Dit e-mailadres heeft accounts bij meerdere organisaties.",
+        "data": {
+          "user_id": "Organisatie"
+        }
+      },
+      "contracts": {
+        "title": "Kies kinderen",
+        "description": "Elk gekozen contract krijgt een eigen apparaat met agenda en sensoren.",
+        "data": {
+          "contract_ids": "Contracten"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw inloggen bij KOVnet",
+        "description": "De login voor {email} is niet meer geldig. Vul je wachtwoord in; staat tweestapsverificatie aan, dan mailt KOVnet daarna een code.",
+        "data": {
+          "password": "Wachtwoord"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Inloggen mislukt, controleer e-mailadres en wachtwoord.",
+      "invalid_code": "De code is niet geaccepteerd. Controleer de nieuwste KOVnet-mail, of ga terug om een nieuwe code aan te vragen.",
+      "cannot_connect": "Kon KOVnet niet bereiken.",
+      "no_contract_selected": "Kies minstens één contract.",
+      "unknown": "Onverwachte fout, zie het logboek."
+    },
+    "abort": {
+      "already_configured": "Dit KOVnet-account is al gekoppeld.",
+      "reauth_successful": "Opnieuw ingelogd.",
+      "cannot_connect": "Kon het KOVnet-profiel niet ophalen.",
+      "no_contracts": "Geen lopende opvangcontracten gevonden voor dit account."
+    }
+  }
+}

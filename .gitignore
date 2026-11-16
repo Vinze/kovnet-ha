@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.vscode/
+.idea/
+.DS_Store
+
+# Nooit meecommitten: app-bestanden, testrapporten met accountgegevens
+*.apk
+*.xapk
+kovnet_probe*.json

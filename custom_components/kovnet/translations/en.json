@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "KOVnet parent portal",
+        "description": "Log in with your KOVnet parent account (the same as in the KOVnet Ouderapp).",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "code": {
+        "title": "Verification code",
+        "description": "KOVnet has emailed a four-digit code to {email}. Enter it here. You only need to do this once; after that Home Assistant uses a token that stays valid for about a year.",
+        "data": {
+          "code": "Code"
+        }
+      },
+      "account": {
+        "title": "Choose organisation",
+        "description": "This email address has accounts at multiple organisations.",
+        "data": {
+          "user_id": "Organisation"
+        }
+      },
+      "contracts": {
+        "title": "Choose children",
+        "description": "Each selected contract gets its own device with a calendar and sensors.",
+        "data": {
+          "contract_ids": "Contracts"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Log in to KOVnet again",
+        "description": "The login for {email} is no longer valid. Enter your password; if two-factor authentication is on, KOVnet will email a code next.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Login failed, check email and password.",
+      "invalid_code": "The code was not accepted. Check the latest KOVnet email, or go back to request a new code.",
+      "cannot_connect": "Could not reach KOVnet.",
+      "no_contract_selected": "Select at least one contract.",
+      "unknown": "Unexpected error, see the log."
+    },
+    "abort": {
+      "already_configured": "This KOVnet account is already configured.",
+      "reauth_successful": "Re-authentication successful.",
+      "cannot_connect": "Could not load the KOVnet profile.",
+      "no_contracts": "No current childcare contracts found for this account."
+    }
+  }
+}
