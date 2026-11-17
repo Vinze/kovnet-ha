@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 import logging
 from typing import Any
 
@@ -13,6 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -26,6 +27,7 @@ from .api import (
     KovnetUser,
     Profile,
     Schedule,
+    token_expiry,
 )
 from .const import (
     CONF_CONTRACT_IDS,
@@ -40,6 +42,9 @@ from .const import (
 # (e.g. a long summer closing), so "Volgende opvang" does not go empty.
 MIN_MONTHS = 2
 MAX_MONTHS = 3
+# Renew the token (or warn, with 2FA) this long before it expires.
+RENEW_BEFORE = timedelta(days=14)
+ISSUE_TOKEN_EXPIRING = "token_expiring"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -104,23 +109,33 @@ def months_from(today: date) -> Iterator[tuple[int, int]]:
         year, month = (year + 1, 1) if month == 12 else (year, month + 1)
 
 
+def token_issue_id(entry_id: str) -> str:
+    return f"{ISSUE_TOKEN_EXPIRING}_{entry_id}"
+
+
+type KovnetConfigEntry = ConfigEntry[KovnetCoordinator]
+
+
 class KovnetCoordinator(DataUpdateCoordinator[KovnetData]):
     """Fetches profile + this month and the next (or one more) for every selected contract."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, api: KovnetApi) -> None:
+    config_entry: KovnetConfigEntry
+
+    def __init__(self, hass: HomeAssistant, entry: KovnetConfigEntry, api: KovnetApi) -> None:
         super().__init__(
             hass, _LOGGER, name=DOMAIN, update_interval=UPDATE_INTERVAL, config_entry=entry
         )
         self.api = api
+        self._renew_failed = False  # proactive renewal failed; don't retry every hour
 
     async def _async_update_data(self) -> KovnetData:
         try:
             try:
-                return await self._fetch()
+                data = await self._fetch()
             except KovnetAuthError:
                 if not await self._relogin():
                     raise
-                return await self._fetch()
+                data = await self._fetch()
         except KovnetTwoFactorRequired as err:
             raise ConfigEntryAuthFailed(
                 "KOVnet vraagt een verificatiecode; log opnieuw in via de melding"
@@ -129,9 +144,48 @@ class KovnetCoordinator(DataUpdateCoordinator[KovnetData]):
             raise ConfigEntryAuthFailed(str(err)) from err
         except (KovnetError, aiohttp.ClientError, TimeoutError) as err:
             raise UpdateFailed(str(err)) from err
+        await self._check_token_expiry()
+        return data
+
+    async def _check_token_expiry(self) -> None:
+        """Renew a token that expires soon, or raise a repair issue if that can't.
+
+        Without 2FA a silent login gives a fresh token. With 2FA that needs an
+        e-mailed code, so the user is asked to log in again before it expires.
+        """
+        entry = self.config_entry
+        issue_id = token_issue_id(entry.entry_id)
+        expiry = token_expiry(self.api.token)
+        if expiry is None or expiry - dt_util.utcnow() > RENEW_BEFORE:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        if not self._renew_failed:
+            try:
+                if await self._relogin():
+                    ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+                    return
+            except KovnetTwoFactorRequired:
+                _LOGGER.info("KOVnet now requires a verification code; please log in again")
+            except (KovnetError, aiohttp.ClientError, TimeoutError) as err:
+                _LOGGER.warning("Could not renew the KOVnet token: %s", err)
+            self._renew_failed = True
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=True,
+            is_persistent=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_TOKEN_EXPIRING,
+            translation_placeholders={
+                "title": entry.title,
+                "date": dt_util.as_local(expiry).strftime("%d-%m-%Y"),
+            },
+            data={"entry_id": entry.entry_id},
+        )
 
     async def _relogin(self) -> bool:
-        """Token invalid: try a silent login with the stored password (works without 2FA).
+        """Try a silent login with the stored password (works without 2FA).
 
         Skipped when the token came from a 2FA login: the attempt would only make
         KOVnet mail a code that is useless, because the reauth flow logs in (and
@@ -141,7 +195,7 @@ class KovnetCoordinator(DataUpdateCoordinator[KovnetData]):
         password = entry.data.get(CONF_PASSWORD)
         if not password or entry.data.get(CONF_TWO_FACTOR):
             return False
-        _LOGGER.debug("KOVnet token rejected, logging in again")
+        _LOGGER.debug("Logging in to KOVnet again for a new token")
         users = await self.api.login(entry.data[CONF_EMAIL], password)
         user = await async_pick_user(self.hass, users, entry.data)
         self.api.token = user.token

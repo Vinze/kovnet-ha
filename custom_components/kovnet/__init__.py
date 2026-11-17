@@ -6,7 +6,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import KovnetApi
@@ -18,11 +18,9 @@ from .const import (
     DOMAIN,
     PLATFORMS,
 )
-from .coordinator import KovnetCoordinator
+from .coordinator import KovnetConfigEntry, KovnetCoordinator, token_issue_id
 
 _LOGGER = logging.getLogger(__name__)
-
-type KovnetConfigEntry = ConfigEntry[KovnetCoordinator]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: KovnetConfigEntry) -> bool:
@@ -37,6 +35,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: KovnetConfigEntry) -> bo
 
 async def async_unload_entry(hass: HomeAssistant, entry: KovnetConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: KovnetConfigEntry) -> None:
+    ir.async_delete_issue(hass, DOMAIN, token_issue_id(entry.entry_id))
 
 
 def _remove_stale_devices(hass: HomeAssistant, entry: KovnetConfigEntry) -> None:

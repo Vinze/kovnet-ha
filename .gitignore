@@ -10,3 +10,4 @@ venv/
 *.apk
 *.xapk
 kovnet_probe*.json
+.pytest_cache/

@@ -79,5 +79,21 @@
         "name": "Volgende opvang"
       }
     }
+  },
+  "issues": {
+    "token_expiring": {
+      "title": "KOVnet-login voor {title} verloopt op {date}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Opnieuw inloggen bij KOVnet",
+            "description": "De KOVnet-login voor {title} verloopt binnenkort. Omdat tweestapsverificatie aan staat, kan Home Assistant hem niet zelf vernieuwen. Verstuur om opnieuw in te loggen: vul je wachtwoord in en daarna de code die KOVnet je mailt."
+          }
+        },
+        "abort": {
+          "entry_not_found": "Deze KOVnet-koppeling bestaat niet meer."
+        }
+      }
+    }
   }
 }

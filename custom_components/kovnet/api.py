@@ -9,9 +9,11 @@ gives {"success": false, "code": 10} (with HTTP 200).
 """
 from __future__ import annotations
 
+import base64
 import calendar
 from dataclasses import dataclass, field
-from datetime import date, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+import json
 import logging
 from typing import Any
 
@@ -148,6 +150,21 @@ class Profile:
     user_id: int | None
     contracts: dict[int, Contract]
     group_names: dict[int, str]
+
+
+def token_expiry(token: str | None) -> datetime | None:
+    """Expiry ("exp" claim) of the JWT, in UTC; None if it cannot be read.
+
+    Only decoded, not verified: it is only used to warn before the token expires.
+    """
+    try:
+        payload = token.split(".")[1]  # type: ignore[union-attr]
+        claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        return datetime.fromtimestamp(int(claims["exp"]), UTC)
+    except (
+        AttributeError, IndexError, KeyError, TypeError, ValueError, OverflowError, OSError
+    ):
+        return None
 
 
 def _date(value: Any) -> date | None:

@@ -55,6 +55,8 @@ Als het token verloopt of door KOVnet wordt ingetrokken:
 - **Zonder 2FA** logt de integratie zelf opnieuw in.
 - **Met 2FA** krijg je in Home Assistant een melding **Opnieuw inloggen**. Vul je wachtwoord in en daarna de nieuwe code uit je mail.
 
+De integratie wacht daar niet op. Twee weken voordat het token verloopt, haalt hij zonder 2FA zelf een nieuw token op. Met 2FA verschijnt onder **Instellingen → Reparaties** een melding met de datum. Klik op **Repareren** om opnieuw in te loggen, dan blijven de sensoren gewoon werken.
+
 ## Privacy
 
 - Je e-mailadres, wachtwoord en token worden alleen opgeslagen in de configuratie van je eigen Home Assistant (`.storage/core.config_entries`).
@@ -73,7 +75,9 @@ Komt er een nieuw contract bij (bijvoorbeeld een tweede kind of een nieuw school
 
 ## Problemen melden
 
-Maak een [issue](https://github.com/Vinze/kovnet-ha/issues) aan. Zet debug-logging aan via **Instellingen → Apparaten en diensten → KOVnet → Foutopsporing inschakelen** en voeg de relevante regels toe.
+Maak een [issue](https://github.com/Vinze/kovnet-ha/issues) aan. Voeg zo mogelijk de diagnostische gegevens toe: **Instellingen → Apparaten en diensten → KOVnet**, menu (⋮) van de koppeling → **Diagnostische gegevens downloaden**. Daarin staan geen namen, e-mailadres, wachtwoord, token of opmerkingen.
+
+Zet voor meer details debug-logging aan via **Foutopsporing inschakelen** op dezelfde pagina en voeg de relevante regels toe.
 
 **Haal er eerst namen, e-mailadressen en tokens uit.**
 
@@ -82,3 +86,12 @@ Maak een [issue](https://github.com/Vinze/kovnet-ha/issues) aan. Zet debug-loggi
 Versie 0.1 las de KOVnet-website uit. Vanaf 0.2 gebruikt de integratie de API van de app.
 
 Bestaande koppelingen worden bij de eerste herstart automatisch omgezet. De entiteit-ID's blijven gelijk. Maak voor de zekerheid eerst een back-up.
+
+## Ontwikkelen
+
+De API-laag heeft tests die zonder Home Assistant draaien:
+
+```sh
+pip install -r requirements_test.txt
+pytest tests
+```

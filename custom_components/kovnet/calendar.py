@@ -4,13 +4,23 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .api import CareDay
+from .coordinator import KovnetConfigEntry, KovnetCoordinator
 from .entity import KovnetEntity, care_days, local_dt
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
+PARALLEL_UPDATES = 0  # the coordinator does all fetching
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: KovnetConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     coordinator = entry.runtime_data
     async_add_entities(KovnetCalendar(coordinator, cid) for cid in coordinator.data.schedules)
 
@@ -51,7 +61,7 @@ def _all_day(d: CareDay, summary: str) -> CalendarEvent:
 class KovnetCalendar(KovnetEntity, CalendarEntity):
     _attr_translation_key = "care"
 
-    def __init__(self, coordinator, contract_id):
+    def __init__(self, coordinator: KovnetCoordinator, contract_id: int) -> None:
         super().__init__(coordinator, contract_id, "calendar")
 
     @property
@@ -63,8 +73,10 @@ class KovnetCalendar(KovnetEntity, CalendarEntity):
                 return _to_event(d)
         return None
 
-    async def async_get_events(self, hass, start_date: datetime, end_date: datetime):
-        events = []
+    async def async_get_events(
+        self, hass: HomeAssistant, start_date: datetime, end_date: datetime
+    ) -> list[CalendarEvent]:
+        events: list[CalendarEvent] = []
         for d in care_days(self.schedule):
             ev = _to_event(d)
             if ev is None:

@@ -79,5 +79,21 @@
         "name": "Next care"
       }
     }
+  },
+  "issues": {
+    "token_expiring": {
+      "title": "KOVnet login for {title} expires on {date}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Log in to KOVnet again",
+            "description": "The KOVnet login for {title} expires soon. Because two-factor authentication is on, Home Assistant cannot renew it by itself. Submit to start logging in again: enter your password and then the code KOVnet emails you."
+          }
+        },
+        "abort": {
+          "entry_not_found": "This KOVnet connection no longer exists."
+        }
+      }
+    }
   }
 }
