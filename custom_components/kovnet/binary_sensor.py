@@ -4,7 +4,7 @@ from __future__ import annotations
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.util import dt as dt_util
 
-from .entity import KovnetTimeEntity
+from .entity import KovnetTimeEntity, fmt_time
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -13,7 +13,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class KovnetCareToday(KovnetTimeEntity, BinarySensorEntity):
-    _attr_name = "Opvang vandaag"
+    _attr_translation_key = "care_today"
     _attr_icon = "mdi:human-child"
 
     def __init__(self, coordinator, contract_id):
@@ -34,8 +34,8 @@ class KovnetCareToday(KovnetTimeEntity, BinarySensorEntity):
         if d is None:
             return {}
         return {
-            "start": d.start.strftime("%H:%M") if d.start else None,
-            "eind": d.end.strftime("%H:%M") if d.end else None,
+            "start": fmt_time(d.start),
+            "eind": fmt_time(d.end),
             "groep": ", ".join(d.groups) or None,
             "afgemeld": d.cancelled,
             "in_afwachting": d.pending,

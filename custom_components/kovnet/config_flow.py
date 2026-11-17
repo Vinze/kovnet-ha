@@ -8,7 +8,12 @@ from typing import Any
 import aiohttp
 import voluptuous as vol
 
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+)
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -33,11 +38,10 @@ from .const import (
     CONF_CONTRACT_IDS,
     CONF_RESEND,
     CONF_TOKEN,
-    CONF_TWO_FACTOR,
     CONF_USER_ID,
     DOMAIN,
 )
-from .coordinator import pick_user
+from .coordinator import async_pick_user, login_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,6 +57,7 @@ PASSWORD_SCHEMA = vol.Schema({vol.Required(CONF_PASSWORD): str})
 
 class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 2
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         self._email: str = ""
@@ -87,16 +92,9 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _after_login(self) -> ConfigFlowResult:
         if self.source == SOURCE_REAUTH:
             entry = self._get_reauth_entry()
-            user = pick_user(self._users, entry.data.get(CONF_USER_ID))
+            user = await async_pick_user(self.hass, self._users, entry.data)
             return self.async_update_reload_and_abort(
-                entry,
-                data={
-                    **entry.data,
-                    CONF_PASSWORD: self._password,
-                    CONF_TOKEN: user.token,
-                    CONF_USER_ID: user.user_id,
-                    CONF_TWO_FACTOR: self._two_factor,
-                },
+                entry, data=login_data(entry.data, user, self._password, self._two_factor)
             )
         if len(self._users) > 1:
             return await self.async_step_account()
@@ -189,12 +187,7 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Entries migrated from v1 have a different unique_id (one entry per
         # contract), so also leave out contracts that another entry already shows.
-        configured = {
-            int(cid)
-            for entry in self._async_current_entries(include_ignore=False)
-            if str(entry.data.get(CONF_EMAIL, "")).lower() == self._email.lower()
-            for cid in entry.data.get(CONF_CONTRACT_IDS) or []
-        }
+        configured = self._configured_contracts(self._email)
         today = dt_util.now().date()
         current = {
             cid: c for cid, c in self._profile.contracts.items() if c.is_current(today)
@@ -212,23 +205,68 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_create_entry(
                     title=self._user.organization or "KOVnet",
-                    data={
-                        CONF_EMAIL: self._email,
-                        CONF_PASSWORD: self._password,
-                        CONF_TOKEN: self._user.token,
-                        CONF_USER_ID: self._user.user_id,
-                        CONF_TWO_FACTOR: self._two_factor,
-                        CONF_CONTRACT_IDS: chosen,
-                    },
+                    data=login_data(
+                        {CONF_EMAIL: self._email, CONF_CONTRACT_IDS: chosen},
+                        self._user,
+                        self._password,
+                        self._two_factor,
+                    ),
                 )
         return self.async_show_form(
             step_id="contracts",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_CONTRACT_IDS, default=list(contracts)): cv.multi_select(
-                        contracts
-                    )
-                }
+            data_schema=_contracts_schema(contracts, list(contracts)),
+            errors=errors,
+        )
+
+    def _configured_contracts(self, email: str, exclude: ConfigEntry | None = None) -> set[int]:
+        """Contracts that other entries for this e-mail address already show."""
+        return {
+            int(cid)
+            for entry in self._async_current_entries(include_ignore=False)
+            if entry is not exclude
+            and str(entry.data.get(CONF_EMAIL, "")).lower() == email.lower()
+            for cid in entry.data.get(CONF_CONTRACT_IDS) or []
+        }
+
+    # --- reconfigure: change the selected contracts --------------------------
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if self._profile is None:
+            try:
+                self._profile = await self._api(entry.data.get(CONF_TOKEN)).profile()
+            except KovnetAuthError:
+                return self.async_abort(reason="reauth_required")
+            except (KovnetError, aiohttp.ClientError, TimeoutError):
+                _LOGGER.exception("Could not load KOVnet profile")
+                return self.async_abort(reason="cannot_connect")
+
+        selected = [int(cid) for cid in entry.data.get(CONF_CONTRACT_IDS) or []]
+        other = self._configured_contracts(entry.data[CONF_EMAIL], exclude=entry)
+        today = dt_util.now().date()
+        contracts = {
+            str(cid): c.label
+            for cid, c in self._profile.contracts.items()
+            if cid not in other and (cid in selected or c.is_current(today))
+        }
+        if not contracts:
+            return self.async_abort(reason="no_contracts")
+
+        if user_input is not None:
+            chosen = [int(cid) for cid in user_input[CONF_CONTRACT_IDS]]
+            if not chosen:
+                errors["base"] = "no_contract_selected"
+            else:
+                return self.async_update_reload_and_abort(
+                    entry, data={**entry.data, CONF_CONTRACT_IDS: chosen}
+                )
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_contracts_schema(
+                contracts, [cid for cid in map(str, selected) if cid in contracts]
             ),
             errors=errors,
         )
@@ -257,3 +295,9 @@ class KovnetConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={"email": self._email},
         )
+
+
+def _contracts_schema(contracts: dict[str, str], default: list[str]) -> vol.Schema:
+    return vol.Schema(
+        {vol.Required(CONF_CONTRACT_IDS, default=default): cv.multi_select(contracts)}
+    )

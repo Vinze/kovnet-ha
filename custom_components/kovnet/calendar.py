@@ -23,18 +23,33 @@ def _to_event(d: CareDay) -> CalendarEvent | None:
             summary=f"Opvang {', '.join(d.groups)}".strip(),
             description=d.remarks or None,
         )
-    if d.cancelled or d.closed:
+    if d.closed:
+        return _all_day(d, "Opvang gesloten")
+    if requested := d.requested_blocks:
+        # Not yet approved: shown, but never counted as care (see `event`).
+        groups = ", ".join(sorted({b.group for b in requested if b.group}))
         return CalendarEvent(
-            start=d.day,
-            end=d.day + timedelta(days=1),
-            summary="Opvang gesloten" if d.closed else "Opvang afgemeld",
+            start=local_dt(d.day, min(b.start for b in requested)),
+            end=local_dt(d.day, max(b.end for b in requested)),
+            summary=f"Opvang aangevraagd {groups}".strip(),
             description=d.remarks or None,
         )
+    if d.cancelled:
+        return _all_day(d, "Opvang afgemeld")
     return None
 
 
+def _all_day(d: CareDay, summary: str) -> CalendarEvent:
+    return CalendarEvent(
+        start=d.day,
+        end=d.day + timedelta(days=1),
+        summary=summary,
+        description=d.remarks or None,
+    )
+
+
 class KovnetCalendar(KovnetEntity, CalendarEntity):
-    _attr_name = "Opvang"
+    _attr_translation_key = "care"
 
     def __init__(self, coordinator, contract_id):
         super().__init__(coordinator, contract_id, "calendar")

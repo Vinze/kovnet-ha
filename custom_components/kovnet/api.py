@@ -23,6 +23,8 @@ API_URL = "https://app.kovnet.nl/api/v2/"
 CODE_TOKEN_INVALID = 10
 CODE_2FA_REQUIRED = 15
 TIMEOUT = aiohttp.ClientTimeout(total=30)
+# "24:00" (end of day); datetime.time cannot represent it, see end_of_day().
+END_OF_DAY = time.max
 
 
 class KovnetError(Exception):
@@ -53,6 +55,11 @@ class CareBlock:
     remarks: str
     pending: bool = False  # request not (yet) approved
 
+    @property
+    def requested(self) -> bool:
+        """Pending request that is not cancelled."""
+        return self.pending and not self.cancelled
+
 
 @dataclass
 class CareDay:
@@ -75,8 +82,12 @@ class CareDay:
         return any(b.cancelled for b in self.blocks) and not self.active_blocks
 
     @property
+    def requested_blocks(self) -> list[CareBlock]:
+        return [b for b in self.blocks if b.requested]
+
+    @property
     def pending(self) -> bool:
-        return any(b.pending and not b.cancelled for b in self.blocks)
+        return bool(self.requested_blocks)
 
     @property
     def start(self) -> time | None:
@@ -148,8 +159,8 @@ def _date(value: Any) -> date | None:
 def _hm(entry: dict, prefix: str) -> time:
     hours = int(entry.get(f"{prefix}_hours") or 0)
     minutes = int(entry.get(f"{prefix}_minutes") or 0)
-    if hours >= 24:  # "24:00" = end of day; datetime.time cannot represent it
-        return time(23, 59)
+    if hours >= 24:
+        return END_OF_DAY
     return time(hours, minutes)
 
 
@@ -269,7 +280,10 @@ class KovnetApi:
         ) as resp:
             if resp.status in (401, 403):
                 raise KovnetAuthError(f"Geen toegang (HTTP {resp.status})")
-            resp.raise_for_status()
+            # Not raise_for_status(): its message contains the full URL, and for
+            # the login call that includes the password (query parameters).
+            if resp.status >= 400:
+                raise KovnetError(f"KOVnet gaf HTTP {resp.status} bij {path}")
             try:
                 data = await resp.json(content_type=None)
             except ValueError as err:

@@ -13,7 +13,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class KovnetNextCare(KovnetTimeEntity, SensorEntity):
-    _attr_name = "Volgende opvang"
+    _attr_translation_key = "next_care"
     _attr_icon = "mdi:calendar-clock"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 

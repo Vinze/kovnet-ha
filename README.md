@@ -12,7 +12,7 @@ Per kind (per opvangcontract) een apparaat met:
 |---|---|
 | `binary_sensor` **Opvang vandaag** | Aan als je kind vandaag opvang heeft. Attributen: start, eind, groep, afgemeld, in afwachting, gesloten, opmerking. |
 | `sensor` **Volgende opvang** | Tijdstip waarop de volgende opvang begint. Attributen: eind, groep. |
-| `calendar` **Opvang** | Alle opvangdagen van deze en volgende maand. Afgemelde en gesloten dagen staan erin als hele-dag-afspraak. |
+| `calendar` **Opvang** | Alle opvangdagen van deze en volgende maand. Afgemelde en gesloten dagen staan erin als hele-dag-afspraak. Aanvragen die nog niet zijn goedgekeurd staan erin als **Opvang aangevraagd**. |
 
 Het rooster wordt elk uur opgehaald.
 
@@ -59,14 +59,17 @@ Als het token verloopt of door KOVnet wordt ingetrokken:
 
 - Je e-mailadres, wachtwoord en token worden alleen opgeslagen in de configuratie van je eigen Home Assistant (`.storage/core.config_entries`).
 - De integratie praat alleen met `app.kovnet.nl`. Er gaan geen gegevens naar andere partijen.
-- Het wachtwoord wordt bewaard zodat de integratie zonder 2FA vanzelf opnieuw kan inloggen.
+- Zonder 2FA wordt het wachtwoord bewaard, zodat de integratie vanzelf opnieuw kan inloggen. Met 2FA wordt het wachtwoord niet bewaard; daar heeft het geen nut.
 - Het inloggen werkt zoals in de app: e-mailadres en wachtwoord gaan via HTTPS als parameters in de URL. Ze zijn versleuteld onderweg, maar kunnen in de serverlogs van KOVnet terechtkomen.
 
 ## Beperkingen
 
 - Alleen lezen: je kunt vanuit Home Assistant niets aanvragen, afmelden of ruilen.
-- Alleen deze en volgende maand worden opgehaald.
-- Komt er een nieuw contract bij (bijvoorbeeld een tweede kind), verwijder dan de koppeling en voeg hem opnieuw toe. Vink daarbij het nieuwe contract aan.
+- Alleen deze en volgende maand worden opgehaald. Staat daarin geen opvang meer gepland (bijvoorbeeld door een lange sluiting), dan ook de maand daarna.
+
+## Kinderen toevoegen of weghalen
+
+Komt er een nieuw contract bij (bijvoorbeeld een tweede kind of een nieuw schooljaar bij de BSO), ga dan naar **Instellingen → Apparaten en diensten → KOVnet**, open het menu (⋮) van de koppeling en kies **Opnieuw configureren**. Vink de contracten aan die je wilt zien. Apparaten van contracten die je uitvinkt worden verwijderd.
 
 ## Problemen melden
 

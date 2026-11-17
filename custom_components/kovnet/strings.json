@@ -37,6 +37,13 @@
         "data": {
           "password": "Password"
         }
+      },
+      "reconfigure": {
+        "title": "Change children",
+        "description": "Choose which contracts this connection shows. Devices of contracts you deselect are removed.",
+        "data": {
+          "contract_ids": "Contracts"
+        }
       }
     },
     "error": {
@@ -51,7 +58,26 @@
       "already_configured": "This KOVnet account is already configured.",
       "reauth_successful": "Re-authentication successful.",
       "cannot_connect": "Could not load the KOVnet profile.",
-      "no_contracts": "No current childcare contracts found for this account."
+      "no_contracts": "No current childcare contracts found for this account.",
+      "reauth_required": "The login is no longer valid. Log in again first.",
+      "reconfigure_successful": "The selection has been saved."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "care_today": {
+        "name": "Care today"
+      }
+    },
+    "calendar": {
+      "care": {
+        "name": "Care"
+      }
+    },
+    "sensor": {
+      "next_care": {
+        "name": "Next care"
+      }
     }
   }
 }

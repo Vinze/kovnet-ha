@@ -1,7 +1,7 @@
 """Base entity + helpers."""
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -9,13 +9,22 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .api import CareDay, Schedule
+from .api import END_OF_DAY, CareDay, Schedule
 from .const import DOMAIN
 from .coordinator import KovnetCoordinator
 
 
 def local_dt(day: date, t: time) -> datetime:
+    """Local datetime; END_OF_DAY ("24:00") becomes midnight of the next day."""
+    if t == END_OF_DAY:
+        day, t = day + timedelta(days=1), time(0)
     return datetime.combine(day, t, tzinfo=dt_util.get_default_time_zone())
+
+
+def fmt_time(t: time | None) -> str | None:
+    if t is None:
+        return None
+    return "24:00" if t == END_OF_DAY else t.strftime("%H:%M")
 
 
 def care_days(schedule: Schedule | None) -> list[CareDay]:

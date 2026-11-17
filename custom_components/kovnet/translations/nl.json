@@ -37,6 +37,13 @@
         "data": {
           "password": "Wachtwoord"
         }
+      },
+      "reconfigure": {
+        "title": "Kinderen wijzigen",
+        "description": "Kies welke contracten deze koppeling toont. Apparaten van contracten die je uitvinkt worden verwijderd.",
+        "data": {
+          "contract_ids": "Contracten"
+        }
       }
     },
     "error": {
@@ -51,7 +58,26 @@
       "already_configured": "Dit KOVnet-account is al gekoppeld.",
       "reauth_successful": "Opnieuw ingelogd.",
       "cannot_connect": "Kon het KOVnet-profiel niet ophalen.",
-      "no_contracts": "Geen lopende opvangcontracten gevonden voor dit account."
+      "no_contracts": "Geen lopende opvangcontracten gevonden voor dit account.",
+      "reauth_required": "De login is niet meer geldig. Log eerst opnieuw in.",
+      "reconfigure_successful": "De keuze is opgeslagen."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "care_today": {
+        "name": "Opvang vandaag"
+      }
+    },
+    "calendar": {
+      "care": {
+        "name": "Opvang"
+      }
+    },
+    "sensor": {
+      "next_care": {
+        "name": "Volgende opvang"
+      }
     }
   }
 }
