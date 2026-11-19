@@ -66,17 +66,17 @@
   "entity": {
     "binary_sensor": {
       "care_today": {
-        "name": "Care today"
+        "name": "Daycare today"
       }
     },
     "calendar": {
       "care": {
-        "name": "Care"
+        "name": "Daycare"
       }
     },
     "sensor": {
       "next_care": {
-        "name": "Next care"
+        "name": "Next daycare"
       }
     }
   },
